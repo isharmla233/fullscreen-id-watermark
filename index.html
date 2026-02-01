@@ -1,180 +1,2196 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-cn">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="一个本地处理图片全屏水印的小工具">
-    <title>全屏水印小工具</title>
-    <style>
-        body {
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #ffffff;
-        }
-
-        @media screen and (max-width: 768px) {
-            /* 在小屏幕（例如手机）上应用以下样式 */
-            .container {
-                width: 80%; /* 80%宽度 */
-            }
-        }
-
-        @media screen and (min-width: 769px) {
-            /* 在大屏幕（例如电脑）上应用以下样式 */
-            .container {
-                width: 30%; /* 40%宽度 */
-            }
-        }
-
-        .container {
-            background-color: #ffffff;
-            border-radius: 0px;
-            padding: 20px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.05);
-            font-family: Arial, sans-serif;
-            font-size: 14px; /* 设置字体大小为 12 像素 */
-        }
-
-        /* 分割线样式 */
-        hr {
-            border: none;
-            border-top: 0.8px solid #ccc; /* 边框颜色淡一些 */
-            opacity: 0.3; /* 透明度淡一些 */
-            margin: 10px 0;
-        }
-
-        a {
-            text-decoration: none; /* 去掉默认下划线 */
-            color: #888; /* 设置链接文本颜色为灰色 */
-            border-bottom: 1px solid #888; /* 添加底部边框作为下划线效果，并与文本保留一道缝隙 */
-            padding-bottom: 1px; /* 增加底部内边距来调整缝隙的大小 */
-        }
-
-        /* 底部版权信息样式 */
-        footer {
-            text-align: center;
-            color: #d4d4d4;
-            margin-top: 20px;
-            width: 100%;
-
-            bottom: 0;
-            font-size: 12px; /* 设置字体大小为 12 像素 */
-            font-family: Arial, sans-serif;
-            line-height: 1.8; /* 设置行高为 1.1 倍 */
-        }
-
-
-        canvas {
-            width: 100%;
-            height: 0;
-        }
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   
-        h2 {
-        text-align: center; /* 设置 h2 标题文本居中对齐 */
-        }
+  <!-- SEO Meta -->
+  <title>证件全屏水印助手</title>
+  <meta name="description" content="一个在本地为各类证件图片添加全屏保护水印的小工具，仅在浏览器本地处理，可离线使用" />
+  <meta name="keywords" content="证件水印,全屏水印,防盗用水印,在线水印工具,图片水印,批量水印,离线工具" />
+  <meta name="author" content="github.com/isharmla233" />
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="android-chrome-512x512.png" />
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://cdn.bootcdn.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/misans/4.0.0/misans-normal.min.css" />
+  <style>
+    /* ==================== CSS 变量 ==================== */
+    :root {
+      --bg: #f7f6f3;
+      --panel: #ffffff;
+      --muted: #6b7280;
+      --text: #111827;
+      --border: #e7e5e4;
+      --shadow: 0 1px 0 rgba(15,23,42,.01), 0 10px 28px rgba(15,23,42,.04);
+      --radius: 12px;
+      --accent: #111827;
+      --accent-weak: #f3f4f6;
+      --danger: #ef4444;
+    }
+    
+    /* ==================== 基础样式 ==================== */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.65 "MiSans", system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
 
-</style>
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 22px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 20px;
+      box-sizing: border-box;
+    }
 
-    </style>
+    /* ==================== 头部样式 ==================== */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0.5em;
+    }
+    h1 { font-size: 18px; margin: 0; letter-spacing: .2px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    h1 .site-icon {
+      width: 24px;
+      height: 24px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .sub { color: var(--muted); font-size: 12px; margin-top: 0.25em;}
+
+    /* ==================== 布局样式 ==================== */
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 14px;
+      align-items: start;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      box-sizing: border-box;
+      max-width: 100%;
+    }
+
+    /* ==================== 控制面板样式 ==================== */
+    .console {
+      padding: 16px;
+      display: grid;
+      gap: 16px;
+      align-self: start;
+    }
+    .controls { display: grid; gap: 14px; }
+    label { 
+      display: grid; 
+      gap: 8px; 
+      font-size: 13px; 
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    label .label-text {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 20px;
+    }
+    label .label-value {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 400;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    /* ==================== 输入控件样式 ==================== */
+    input[type="text"],
+    textarea,
+    select,
+    input[type="number"] {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+      font-size: 13px;
+      transition: all .15s ease;
+      font-family: inherit;
+    }
+    input[type="text"]:hover,
+    textarea:hover,
+    select:hover,
+    input[type="number"]:hover {
+      border-color: #d0d0d0;
+    }
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus,
+    input[type="number"]:focus {
+      border-color: #111827;
+      box-shadow: 0 0 0 3px rgba(17,24,39,.06);
+    }
+    
+    /* 值输入框样式 - 必须在通用input之后以覆盖 */
+    input.value-input {
+      width: 70px !important;
+      min-width: 70px;
+      max-width: 70px;
+      flex: 0 0 70px;
+      padding: 4px 8px !important;
+      border-radius: 6px;
+      border: 1px solid #e0e0e0;
+      background: #fafafa !important;
+      color: var(--text);
+      font-size: 12px !important;
+      font-weight: 500;
+      text-align: center;
+      outline: none;
+      transition: all .15s ease;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    input.value-input:hover {
+      border-color: #d0d0d0;
+      background: #fff !important;
+    }
+    input.value-input:focus {
+      border-color: #111827;
+      background: #fff !important;
+      box-shadow: 0 0 0 3px rgba(17,24,39,.06);
+    }
+    /* 滑块容器 */
+    .range-wrapper {
+      position: relative;
+      --thumb: 18px;
+      --dot: 6px;
+      --track: 6px;
+      height: 22px;
+    }
+    .range-wrapper::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: var(--track);
+      transform: translateY(-50%);
+      background: #e5e7eb;
+      border-radius: 3px;
+      z-index: 1;
+    }
+    
+    /* 刻度点容器 - 与轨道中心线对齐 */
+    .range-dots {
+      position: absolute;
+      left: calc(var(--thumb) / 2);
+      right: calc(var(--thumb) / 2);
+      top: 50%;
+      height: var(--track);
+      transform: translateY(-50%);
+      pointer-events: none;
+      z-index: 2;
+    }
+    
+    /* 刻度点 - 与轨道垂直居中对齐 */
+    .range-dot {
+      width: var(--dot);
+      height: var(--dot);
+      border-radius: 50%;
+      background: #d1d5db;
+      transition: all .2s ease;
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .range-dot.active {
+      background: #111827;
+      transform: translate(-50%, -50%) scale(1.4);
+      box-shadow: 0 0 0 3px rgba(17,24,39,.1);
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: var(--track);
+      border-radius: 3px;
+      background: transparent;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      margin: 0;
+      z-index: 3;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #111827;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,.1);
+      transition: all .15s ease;
+      position: relative;
+      z-index: 15;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid #111827;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,.1);
+      transition: all .15s ease;
+      position: relative;
+      z-index: 6;
+    }
+    input[type="range"]::-moz-range-thumb:hover {
+      transform: scale(1.15);
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    textarea { 
+      min-height: 88px; 
+      max-height: 220px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    input[type="color"] {
+      width: 48px;
+      height: 32px;
+      padding: 0;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+    input[type="color"]:hover {
+      border-color: #111827;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .control-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .control-group {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+      background: #fafafa;
+      border-radius: 8px;
+      border: 1px solid #f0f0f0;
+    }
+    .option-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .option-help {
+      margin-top: -6px;
+    }
+
+    /* ==================== 高级设置折叠样式 ==================== */
+    .advanced-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #f7f7f7;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: all .15s ease;
+      margin-top: 4px;
+    }
+    .advanced-toggle:hover {
+      background: #f0f0f0;
+    }
+    .advanced-toggle .toggle-text {
+      font-size: 13px;
+      font-weight: 500;
+      /* color: #6b7280; */
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .advanced-toggle .toggle-icon {
+      font-size: 14px;
+      color: #9ca3af;
+      transition: transform .2s ease;
+    }
+    .advanced-toggle.expanded .toggle-icon {
+      transform: rotate(180deg);
+    }
+    .advanced-content {
+      display: none;
+      gap: 14px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .advanced-content.show {
+      display: grid;
+    }
+
+    /* ==================== 按钮样式 ==================== */
+    .btn {
+      appearance: none;
+      border: 1px solid #e0e0e0;
+      background: #fff;
+      color: #37352f;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+      font-family: inherit;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      transition: all .15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn:hover { 
+      background: #f7f6f3; 
+      border-color: #d0d0d0;
+    }
+    .btn:active { 
+      transform: scale(0.98);
+      background: #f0f0f0;
+    }
+    .btn.primary {
+      background: #111827;
+      border-color: #111827;
+      color: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,.1);
+    }
+    .btn.primary:hover { 
+      background: #000000;
+      border-color: #000000;
+      box-shadow: 0 2px 4px rgba(0,0,0,.2);
+      transform: translateY(-1px);
+    }
+    .btn.primary:active {
+      transform: translateY(0) scale(0.98);
+    }
+    .btn.ghost { 
+      background: #f7f7f7;
+      border-color: #e5e5e5;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .btn.ghost:hover {
+      background: #f0f0f0;
+      border-color: #d5d5d5;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .btn.danger { 
+      color: #fff; 
+      background: #ef4444; 
+      border-color: #ef4444; 
+    }
+    .btn.danger:hover {
+      background: #dc2626;
+      border-color: #dc2626;
+    }
+    .btn.sm { 
+      padding: 4px 8px; 
+      font-size: 11px; 
+      flex: 1; 
+      min-width: 42px; 
+    }
+    .help { 
+      color: #9b9a97; 
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* ==================== 预览区样式 ==================== */
+    .workspace { display: grid; gap: 14px; }
+    .previewWrap { position: relative; padding: 12px; min-height: 46vh; }
+    .previewPanel { display: grid; min-height: 400px; }
+    .previewBox {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px dashed var(--border);
+      background: #fafafa;
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      min-height: 400px;
+      width: 100%;
+    }
+    canvas#preview { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
+
+    .fileInput { position: absolute; inset: 12px; opacity: 0; cursor: pointer; z-index: 3; }
+    .dropHint {
+      position: absolute;
+      inset: 12px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      border: 1.5px dashed #d6d3d1;
+      border-radius: var(--radius);
+      pointer-events: none;
+      z-index: 1;
+      background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.6));
+    }
+    .previewWrap.dragover .dropHint {
+      border-color: #111827;
+      color: #111827;
+      background: rgba(17,24,39,.05);
+    }
+
+    /* ==================== 缩略图样式 ==================== */
+    .thumbs { padding: 12px; display: grid; gap: 10px; grid-template-columns: repeat(5, 1fr); }
+    .thumbs.hidden { display: none; }
+    @media (max-width: 1200px) { .thumbs { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 1000px) { .thumbs { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 800px) { .thumbs { grid-template-columns: repeat(2, 1fr); } }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 0 rgba(15,23,42,.03);
+      min-width: 0;
+    }
+    .thumb { 
+      aspect-ratio: 1 / 1; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+      overflow: hidden;
+      position: relative;
+    }
+    .thumb img { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; 
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .meta { padding: 8px; display: grid; gap: 6px; font-size: 12px; border-top: 1px solid var(--border); }
+    .name { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: #111827; font-size: 11px; }
+    .actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+
+    /* ==================== 页脚样式 ==================== */
+    footer { color: var(--muted); font-size: 12px; text-align: center; display: grid; gap: 4px; }
+    footer .meta-line { 
+      color: #9ca3af; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      line-height: 1.5;
+    }
+    
+    footer .meta-line .separator {
+      display: inline;
+    }
+    
+    @media (max-width: 768px) {
+      footer .meta-line .separator {
+        display: none;
+      }
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 999px;
+      background: #fff;
+      font-size: 11px;
+      font-weight: 400;
+      color: #6b7280;
+      letter-spacing: -0.01em;
+    }
+
+    .class-links {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #9ca3af;
+      text-decoration: none;
+      font-size: 12px;
+      /* padding: 2px 8px; */
+      border-radius: 6px;
+      transition: all .15s ease;
+      vertical-align: middle;
+    }
+    .class-links .arrow-icon {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+      flex-shrink: 0;
+      opacity: 0.9;
+      margin: 0 2px 0 -4px;
+    }
+    .class-links:hover {
+      color: #111827;
+      background: #f3f4f6;
+    }
+    .class-links svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+    .class-links .links {
+      position: relative;
+      display: inline-block;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+    .class-links .links::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      width: 0;
+      height: 0.75px;
+      background: currentColor;
+      transition: all .25s ease;
+      transform: translateX(-50%);
+    }
+    .class-links:hover .links::after {
+      width: 100%;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .url-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin: 12px auto 0;
+      max-width: 480px;
+      min-width: 400px;
+      transition: all .15s ease;
+      box-sizing: border-box;
+    }
+    .url-card:hover {
+      border-color: #d1d5db;
+      box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    }
+    .url-text {
+      font-size: 13px;
+      color: #6b7280;
+      font-weight: 500;
+      font-family: 'Consolas', 'Monaco', monospace;
+      user-select: all;
+      word-break: break-all;
+      overflow-wrap: break-word;
+    }
+    .copy-btn {
+      appearance: none;
+      border: 1px solid #e5e7eb;
+      background: #fafafa;
+      color: #6b7280;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all .15s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+      color: #111827;
+    }
+    .copy-btn:active {
+      transform: scale(0.95);
+    }
+    .copy-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+    .doc-panel {
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .doc-panel h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .doc-panel ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    /* ==================== Toast 通知样式 ==================== */
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+      }
+    }
+
+    .error-toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      color: #37352f;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.04);
+      z-index: 9999;
+      font-size: 13px;
+      font-weight: 500;
+      max-width: 90%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideDown 0.3s ease;
+      border-left: 3px solid #ef4444;
+    }
+    
+    .error-toast::before {
+      content: '⚠️';
+      font-size: 16px;
+    }
+    
+    .error-toast.hiding {
+      animation: slideUp 0.3s ease forwards;
+    }
+
+    .success-toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      color: #37352f;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.04);
+      z-index: 9999;
+      font-size: 13px;
+      font-weight: 500;
+      max-width: 90%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideDown 0.3s ease;
+      border-left: 3px solid #10b981;
+    }
+    
+    .success-toast::before {
+      content: '✅';
+      font-size: 16px;
+    }
+    
+    .success-toast.hiding {
+      animation: slideUp 0.3s ease forwards;
+    }
+
+    /* ==================== 移动端适配 ==================== */
+    @media (max-width: 768px) {
+      html, body {
+        overflow-x: hidden;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .shell {
+        padding: 16px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
+      }
+      
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0.5em;
+      }
+      
+      header .row {
+        width: 100%;
+        justify-content: stretch;
+        box-sizing: border-box;
+      }
+      
+      header .row .btn {
+        flex: 1;
+        min-width: 0;
+      }
+      
+      .layout {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      .console {
+        padding: 14px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      .controls {
+        gap: 12px;
+        width: 100%;
+      }
+      
+      .control-group {
+        padding: 10px;
+        box-sizing: border-box;
+      }
+      
+      .previewWrap {
+        min-height: 300px;
+        width: 100%;
+        padding: 12px;
+        box-sizing: border-box;
+      }
+      
+      .previewBox {
+        min-width: 0;
+        min-height: 300px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      .thumbs {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        width: 100%;
+        padding: 12px;
+        box-sizing: border-box;
+      }
+      
+      h1 {
+        font-size: 18px;
+        flex-wrap: wrap;
+        word-break: break-word;
+        max-width: 100%;
+      }
+      
+      .sub {
+        font-size: 12px;
+      }
+      
+      .row {
+        flex-wrap: wrap;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      footer .meta-line {
+        flex-direction: column;
+        gap: 0px;
+        text-align: center;
+      }
+      
+      footer .meta-line::before,
+      footer .meta-line::after {
+        content: none;
+      }
+      
+      .class-links {
+        padding: 6px 12px;
+      }
+      
+      .filing-info {
+        display: none;
+      }
+      
+      footer .meta-line .separator:last-of-type {
+        display: none;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      html, body {
+        overflow-x: hidden;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .shell {
+        padding: 12px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      .thumbs {
+        grid-template-columns: repeat(2, 1fr);
+        box-sizing: border-box;
+      }
+      
+      .btn {
+        font-size: 12px;
+        padding: 8px 10px;
+        min-width: 0;
+        max-width: 100%;
+        word-wrap: break-word;
+      }
+      
+      .previewBox {
+        min-height: 250px;
+        box-sizing: border-box;
+      }
+      
+      label .label-text {
+        font-size: 12px;
+      }
+      
+      input[type="text"],
+      textarea,
+      input[type="number"] {
+        font-size: 14px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      .url-card {
+        flex-direction: column;
+        align-items: stretch;
+        max-width: none;
+        min-width: 0;
+        gap: 8px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      
+      .url-text {
+        text-align: center;
+        font-size: 12px;
+        word-break: break-all;
+      }
+      
+      .copy-btn {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      h1 {
+        font-size: 18px;
+        word-break: break-word;
+      }
+      
+      .pill {
+        font-size: 10px;
+        padding: 2px 8px;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-    <h2>全屏水印小工具</h2><hr>
-    <!-- 插入水印功能元素 -->
-    <canvas></canvas>
-<div>
-    <input id="upload-input" type="file" accept="image/*">
-    <br><br><br><label>
-        水印文字：
-        <input id="content" type="text" value="仅供XX实名认证使用">
-    </label>
-    <br><br><label>
-        水印颜色：
-        <input id="color" type="color" value="#ffffff">
-    </label>
-    <br><br><label>
-        不透明度：
-        <input id="alpha" type="range" min="10" max="100" value="50">
-    </label>
-    <br><br><label>
-        水印大小比：
-        <input id="size" type="range" min="1" max="10" value="5">
-    </label>
-    <br><br><label>
-        水印间隔比：
-        <input id="gap" type="range" min="20" max="400" value="150">
-    </label>
-    <br><br><label>
-        水印字体：
-        <input id="font" type="text"  value="sans-serif">
-    </label>
-    <br><br><br><br><a href="javascript:alert('请先打开一张图片')" download>保存图片</a><br><br>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>
+          <img src="favicon-32x32.png" alt="logo" class="site-icon" />
+          证件全屏水印助手
+          <span class="pill">V4.26</span>
+        </h1>
+        <div class="sub">为各类证件图片添加全屏保护水印，仅在浏览器本地处理，可离线使用</div>
+      </div>
+      <div class="row">
+        <button id="processAll" class="btn primary">处理全部并下载</button>
+        <button id="clear" class="btn ghost">清空列表</button>
+      </div>
+    </header>
 
-<footer>
-    © <a href="https://www.baiyuyu.com">baiyuyu.com</a> 2023｜一个全屏水印小工具
-    <br><br>
-</footer>
-</div>
+    <div class="layout">
+      <section class="panel console">
+        <div class="row" style="justify-content:space-between; align-items: center;">
+          <div class="help">
+            可用变量 :
+            <button class="btn sm ghost token" data-token="{date}" type="button">{date}</button>
+            <button class="btn sm ghost token" data-token="{time}" type="button">{time}</button>
+            <button class="btn sm ghost token" data-token="{filename}" type="button">{filename}</button>
+          </div>
+          <button id="resetSettings" class="btn sm ghost" type="button" title="重置为默认样式">重置为默认样式</button>
+        </div>
 
-<script>
-    var img = null;
-    document.addEventListener('change', function (ev) {
-        if (ev.target.type === 'file') {
-            if (!ev.target.files.length) return;
-            var file = ev.target.files[0];
-            createBitmap(file, function (result) {
-                img = result;
-                repaint()
-            });
-            var newName = file.name.split('.');
-            newName.splice(-1, 0, 'watermarked');
-            document.getElementsByTagName('a')[0].download = newName.join('.');
-        } else {
-            repaint()
+        <div class="controls">
+          <label>
+            <span class="label-text">水印文本</span>
+            <textarea id="wmText" placeholder="例如：仅供××实名认证使用&#10;{date} {time}"></textarea>
+          </label>
+
+          <div class="control-group">
+            <div class="control-grid">
+              <label>
+                <span class="label-text">颜色</span>
+                <input type="color" id="wmColor" value="#111111" />
+              </label>
+              <label>
+                <div class="label-text">
+                  <span>不透明度</span>
+                  <input type="text" class="value-input" id="alphaInput" value="20%" />
+                </div>
+                <div class="range-wrapper">
+                  <div class="range-dots" id="alphaDots"></div>
+                  <input type="range" id="wmAlpha" min="0" max="100" value="20" step="1" />
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label>
+              <div class="label-text">
+                <span>字号 (px)</span>
+                <input type="text" class="value-input" id="sizeInput" value="自动" />
+              </div>
+              <div class="range-wrapper">
+                <div class="range-dots" id="sizeDots"></div>
+                <input type="range" id="wmSize" min="0" max="100" value="0" step="1" />
+              </div>
+            </label>
+            <div class="help">⚡设为 0 时将自动根据图片尺寸调整</div>
+          </div>
+
+          <div class="control-group">
+            <label>
+              <div class="label-text">
+                <span>旋转角度</span>
+                <input type="text" class="value-input" id="angleInput" value="-45°" />
+              </div>
+              <div class="range-wrapper">
+                <div class="range-dots" id="angleDots"></div>
+                <input type="range" id="wmAngle" min="-90" max="90" value="-45" step="1" />
+              </div>
+            </label>
+          </div>
+
+          <div class="control-group">
+            <label>
+              <div class="label-text">
+                <span>横向间距</span>
+                <input type="text" class="value-input" id="gapXInput" value="160px" />
+              </div>
+              <div class="range-wrapper">
+                <div class="range-dots" id="gapXDots"></div>
+                <input type="range" id="gapX" min="20" max="800" value="160" step="1" />
+              </div>
+            </label>
+            <label>
+              <div class="label-text">
+                <span>纵向间距</span>
+                <input type="text" class="value-input" id="gapYInput" value="160px" />
+              </div>
+              <div class="range-wrapper">
+                <div class="range-dots" id="gapYDots"></div>
+                <input type="range" id="gapY" min="20" max="800" value="160" step="1" />
+              </div>
+            </label>
+          </div>
+
+          <div class="advanced-toggle" id="advancedToggle">
+            <div class="toggle-text">
+              <span>🔧</span>
+              <span>高级设置</span>
+            </div>
+            <div class="toggle-icon">▼</div>
+          </div>
+
+          <div class="advanced-content" id="advancedContent">
+            <label>
+              <span class="label-text">字体</span>
+              <input type="text" id="wmFont" value="&quot;MiSans&quot;, system-ui, &quot;PingFang SC&quot;, sans-serif" placeholder="如：MiSans, system-ui" />
+            </label>
+
+            <div class="option-row">
+              <input type="checkbox" id="stagger" checked style="cursor: pointer;" />
+              <span class="label-text" style="margin: 0;font-weight: 500; color: var(--text);font-size: 13px;">交错排布</span>
+            </div>
+            <div class="help option-help">💡 交错排布：相邻两行水印水平错开半个单元，形成更紧密的覆盖效果</div>
+          </div>
+        </div>
+
+        <div class="row" style="align-items: center;">
+          <button id="pickBtn" class="btn">选择图片</button>
+          <div class="stat" id="stats">未添加图片</div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="panel previewWrap" id="previewWrap">
+          <input id="fileInput" type="file" accept="image/*" multiple class="fileInput" title="点击或拖拽添加图片" />
+          <div id="dropHint" class="dropHint">拖拽图片到这里或点击添加</div>
+          <div class="previewPanel">
+            <div class="previewBox"><canvas id="preview" width="1" height="1" aria-label="预览画布"></canvas></div>
+          </div>
+        </div>
+        <div class="panel thumbs hidden" id="thumbs"></div>
+      </section>
+    </div>
+
+    <footer style="margin-top: 1em;">
+      <div style="color: #9ca3af;line-height: 1.5;">© 2024–2026 证件全屏水印助手 v4.26</div>
+      <div class="meta-line">
+        <a href="https://github.com/isharmla233/fullscreen-id-watermark" target="_blank" rel="noopener" class="class-links">
+          <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+          </svg>
+          <span class="links">isharmla233/fullscreen-id-watermark</span>
+          <svg class="arrow-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M7.00015 6H18.0002V17H16.0002V9.41421L7.00015 18.4142L5.58594 17L14.5859 8H7.00015V6Z" fill="currentColor"/></svg>
+        </a>
+        <span class="separator">·</span>
+
+        <a href="https://www.baiyuyu.com" target="_blank" class="class-links">
+        <span class="links">作者博客</span>
+        <svg class="arrow-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M7.00015 6H18.0002V17H16.0002V9.41421L7.00015 18.4142L5.58594 17L14.5859 8H7.00015V6Z" fill="currentColor"/></svg>
+        </a>
+
+        <span class="separator">·</span>
+
+        <span class="filing-info">京 ICP 备 2023033498 号</span>
+      </div>
+      <div class="url-card">
+        <div class="url-text">tools.baiyuyu.com/watermark</div>
+        <button class="copy-btn" id="copyUrlBtn" type="button">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+          </svg>
+          复制本工具网址
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      // ==================== 配置常量 ==================== 
+      const CONFIG = {
+        MAX_FILES: 200,              // 最大文件数量
+        MAX_FILE_SIZE: 50 * 1024 * 1024,  // 最大文件大小 (50MB)
+        MAX_DIMENSION: 8000,         // 最大图片尺寸
+        BATCH_SIZE: 12,              // 缩略图批量渲染大小
+        RENDER_DEBOUNCE: 100,        // 预览渲染防抖时间(ms)
+        JPEG_QUALITY: 0.92,          // JPEG输出质量
+        MAX_TEXT_LENGTH: 300         // 水印文本最大长度
+      };
+
+      // ==================== 全局状态 ==================== 
+      const state = {
+        files: [],                   // 文件列表
+        settingsKey: 'wmSettings.v4',     // 设置存储key
+        textKey: 'wmText.draft.v4',       // 文本草稿key
+        renderScheduled: false,           // 渲染调度标记
+        renderDebounceTimer: null,        // 防抖定时器
+        thumbsRenderToken: 0,             // 缩略图渲染token
+        isProcessing: false,              // 批处理标记
+        textWarned: false                 // 文本超限提示标记
+      };
+
+      // ==================== DOM 元素引用 ====================
+      const els = {
+        pickBtn: document.getElementById('pickBtn'),
+        fileInput: document.getElementById('fileInput'),
+        previewWrap: document.getElementById('previewWrap'),
+        dropHint: document.getElementById('dropHint'),
+        preview: document.getElementById('preview'),
+        previewBox: document.querySelector('.previewBox'),
+        thumbs: document.getElementById('thumbs'),
+        stats: document.getElementById('stats'),
+        processAll: document.getElementById('processAll'),
+        clear: document.getElementById('clear'),
+        wmText: document.getElementById('wmText'),
+        wmColor: document.getElementById('wmColor'),
+        wmAlpha: document.getElementById('wmAlpha'),
+        wmSize: document.getElementById('wmSize'),
+        wmFont: document.getElementById('wmFont'),
+        wmAngle: document.getElementById('wmAngle'),
+        gapX: document.getElementById('gapX'),
+        gapY: document.getElementById('gapY'),
+        stagger: document.getElementById('stagger'),
+        alphaInput: document.getElementById('alphaInput'),
+        sizeInput: document.getElementById('sizeInput'),
+        angleInput: document.getElementById('angleInput'),
+        gapXInput: document.getElementById('gapXInput'),
+        gapYInput: document.getElementById('gapYInput'),
+        alphaDots: document.getElementById('alphaDots'),
+        sizeDots: document.getElementById('sizeDots'),
+        angleDots: document.getElementById('angleDots'),
+        gapXDots: document.getElementById('gapXDots'),
+        gapYDots: document.getElementById('gapYDots'),
+        advancedToggle: document.getElementById('advancedToggle'),
+        advancedContent: document.getElementById('advancedContent')
+      };
+
+      // ==================== 工具函数 ====================
+      
+      /**
+       * 防抖函数
+       * @param {Function} fn - 需要防抖的函数
+       * @param {Number} ms - 延迟时间
+       */
+      const debounce = (fn, ms) => {
+        let timer;
+        return (...args) => {
+          clearTimeout(timer);
+          timer = setTimeout(() => fn(...args), ms);
+        };
+      };
+
+      /**
+       * 字符串替换全部
+       */
+      function repAll(str, search, replace) {
+        return String(str).split(search).join(replace);
+      }
+
+      /**
+       * 应用字体到文本域
+       */
+      function applyTextFont() {
+        els.wmText.style.fontFamily = els.wmFont.value || 'inherit';
+      }
+
+      /**
+       * 插入占位符到文本域
+       * @param {String} token - 占位符字符串
+       */
+      function insertToken(token) {
+        const el = els.wmText;
+        const start = typeof el.selectionStart === 'number' ? el.selectionStart : el.value.length;
+        const end = typeof el.selectionEnd === 'number' ? el.selectionEnd : el.value.length;
+        const before = el.value.slice(0, start);
+        const after = el.value.slice(end);
+        el.value = before + token + after;
+        el.focus();
+        const pos = start + token.length;
+        el.selectionStart = pos;
+        el.selectionEnd = pos;
+        localStorage.setItem(state.textKey, el.value);
+        save();
+        renderPreview();
+      }
+
+      /**
+       * 格式化水印文本，替换占位符
+       * @param {String} text - 原始文本
+       * @param {File} file - 图片文件对象
+       */
+      function formatText(text, file) {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const time = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        const base = file.name.replace(/\.[^.]+$/, '');
+
+        let output = String(text || '');
+        output = repAll(output, '{date}', date);
+        output = repAll(output, '{time}', time);
+        output = repAll(output, '{filename}', base);
+        return output;
+      }
+
+      /**
+       * 下载 Blob 文件
+       * @param {Blob} blob - 文件数据
+       * @param {String} name - 文件名
+       */
+      function downloadBlob(blob, name) {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = name;
+        document.body.appendChild(anchor);
+        anchor.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          anchor.remove();
+        }, 100);
+      }
+
+      // ==================== 图片处理函数 ====================
+      
+      /**
+       * 加载图片为 ImageBitmap 或 Image 对象
+       * @param {File} file - 图片文件
+       * @returns {Promise<ImageBitmap|Image>}
+       */
+      async function loadBitmap(file) {
+        if ('createImageBitmap' in window) {
+          try {
+            return await createImageBitmap(file, { imageOrientation: 'from-image' });
+          } catch (err) {
+            console.warn('createImageBitmap 失败，回退到 Image:', err);
+          }
         }
-    });
-
-    function repaint() {
-        if (!img) return;
-        var ctx = document.getElementsByTagName('canvas')[0].getContext('2d');
-        ctx.canvas.width = img.width;
-        ctx.canvas.height = img.height;
-        var maxSize = Math.max(img.height, img.width);
-        ctx.canvas.style.height = (img.height / img.width) * 100 + '%';
-        ctx.restore();
-        ctx.drawImage(img, 0, 0);
-        ctx.fillStyle = document.getElementById('color').value;
-        ctx.globalAlpha = document.getElementById('alpha').value / 100;
-        var size = (document.getElementById('size').value * maxSize / 100);
-        ctx.font = size + 'px "' + document.getElementById('font').value + '"';
-        ctx.textBaseline = 'middle';
-        ctx.rotate(-45 * Math.PI / 180);
-        var gap = size * document.getElementById('gap').value / 100;
-        var content = document.getElementById('content').value;
-        if (!content.length) return;
-        var limit = Math.sqrt(2*(maxSize*maxSize));
-        var breaker = ctx.measureText(content).width;
-        for (var h = -maxSize, even = false; h <= limit; h += size + gap, even = !even){
-            for (var v = -maxSize-(even?breaker/2:0); v<=limit+(even?breaker/2:0); v += breaker + size){
-                ctx.fillText(content, v, h);
-            }
-        }
-        document.getElementsByTagName('a')[0].href = ctx.canvas.toDataURL()
-    }
-    function createBitmap(blob, callback) {
-        var img = document.createElement('img');
-        img.addEventListener('load', function () {
-            callback(this);
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          const url = URL.createObjectURL(file);
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('图片加载失败'));
+          };
+          img.src = url;
         });
-        img.src = URL.createObjectURL(blob);
-    }
-</script>
-</div>
+      }
 
+      /**
+       * 在 Canvas 上绘制平铺水印文字
+       * @param {CanvasRenderingContext2D} ctx - Canvas 上下文
+       * @param {Array<String>} lines - 文本行数组
+       * @param {Object} opt - 配置选项
+       */
+      function drawTiledText(ctx, lines, opt) {
+        if (!lines || !lines.length) return;
+        const { width: w, height: h } = ctx.canvas;
+        const angle = (opt.angle || 0) * Math.PI / 180;
+
+        ctx.save();
+        ctx.globalAlpha = opt.alpha ?? 1;
+        ctx.fillStyle = opt.color || '#111';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        
+        // 提升文字渲染质量
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
+        const fontSize = opt.size || 48;
+        ctx.font = `${fontSize}px ${opt.font || 'sans-serif'}`;
+
+        const lineHeight = fontSize * 1.2;
+        const metrics = lines.map(text => ctx.measureText(text));
+        const blockW = Math.max(1, ...metrics.map(m => m.width));
+        const blockH = Math.max(lineHeight * lines.length, lineHeight);
+
+        ctx.translate(w / 2, h / 2);
+        ctx.rotate(angle);
+        ctx.translate(-w / 2, -h / 2);
+
+        const gapX = Math.max(0, opt.gapX || 160);
+        const gapY = Math.max(0, opt.gapY || 160);
+        
+        // 使用更大的覆盖范围确保旋转后完全覆盖（特别是竖版图片）
+        const maxDimension = Math.max(w, h);
+        const coverageArea = maxDimension * 2.5; // 增大覆盖范围
+        const startX = -coverageArea;
+        const endX = w + coverageArea;
+        const startY = -coverageArea;
+        const endY = h + coverageArea;
+
+        // 限制最大迭代次数防止性能问题
+        const maxIterations = 4000;
+        let iterations = 0;
+        let row = 0;
+        
+        for (let y = startY; y < endY && iterations < maxIterations; y += blockH + gapY) {
+          const offset = (opt.stagger && (row % 2 === 1)) ? blockW / 2 : 0;
+          for (let x = startX - offset; x < endX && iterations < maxIterations; x += blockW + gapX) {
+            for (let i = 0; i < lines.length; i++) {
+              const textY = y + i * lineHeight + blockH / 2;
+              ctx.fillText(lines[i], x, textY);
+            }
+            iterations++;
+          }
+          row++;
+        }
+
+        ctx.restore();
+      }
+
+      /**
+       * 获取格式化后的文本行
+       */
+      function linesFor(file) {
+        return formatText(els.wmText.value, file).split(/\r?\n/).filter(Boolean);
+      }
+
+      /**
+       * 根据图片尺寸动态计算合适的水印字号
+       * @param {Number} width - 图片宽度
+       * @param {Number} height - 图片高度
+       * @returns {Number} 计算后的字号
+       */
+      function calculateOptimalFontSize(width, height) {
+        const minDimension = Math.min(width, height);
+        const maxDimension = Math.max(width, height);
+        const avgDimension = (minDimension + maxDimension) / 2;
+        
+        // 基于平均尺寸计算字号，适配各种图片尺寸
+        let fontSize;
+        if (avgDimension < 800) {
+          fontSize = Math.max(24, avgDimension * 0.04);
+        } else if (avgDimension < 2000) {
+          fontSize = avgDimension * 0.035;
+        } else if (avgDimension < 4000) {
+          fontSize = avgDimension * 0.03;
+        } else {
+          fontSize = avgDimension * 0.025;
+        }
+        
+        return Math.round(Math.min(Math.max(fontSize, 24), 200));
+      }
+
+      // ==================== UI 更新函数 ====================
+      
+      /**
+       * 更新统计信息显示
+       */
+      function updateStats() {
+        const count = state.files.length;
+        els.stats.textContent = count ? `已添加 ${count} 张图片` : '未添加图片';
+        if (count) {
+          els.thumbs.classList.remove('hidden');
+        } else {
+          els.thumbs.classList.add('hidden');
+        }
+      }
+
+      /**
+       * 渲染预览 Canvas
+       * 使用防抖 + requestAnimationFrame 保证性能
+       */
+      async function renderPreview() {
+        // 使用防抖 + requestAnimationFrame 确保流畅且不抖动
+        if (state.renderDebounceTimer) {
+          clearTimeout(state.renderDebounceTimer);
+        }
+
+        state.renderDebounceTimer = setTimeout(() => {
+          if (state.renderScheduled) return;
+          state.renderScheduled = true;
+
+          requestAnimationFrame(async () => {
+            try {
+              const cvs = els.preview;
+              const ctx = cvs.getContext('2d', { 
+                alpha: true,
+                desynchronized: false,
+                willReadFrequently: false 
+              });
+              if (!ctx) return;
+
+              if (!state.files.length) {
+                cvs.width = 1;
+                cvs.height = 1;
+                els.dropHint.style.display = 'grid';
+                ctx.clearRect(0, 0, 1, 1);
+                return;
+              }
+
+              els.dropHint.style.display = 'none';
+              const first = state.files[0];
+              let bmp;
+
+              try {
+                bmp = await loadBitmap(first.file);
+                const w = bmp.width || bmp.naturalWidth;
+                const h = bmp.height || bmp.naturalHeight;
+
+                // 检查尺寸限制
+                if (w > CONFIG.MAX_DIMENSION || h > CONFIG.MAX_DIMENSION) {
+                  console.warn(`图片尺寸过大: ${w}x${h}，可能影响性能`);
+                }
+
+                // 确保获取正确的容器尺寸
+                const containerWidth = els.previewBox.clientWidth || 800;
+                const containerHeight = els.previewBox.clientHeight || 600;
+                const maxW = Math.max(containerWidth - 40, 400);
+                const maxH = Math.max(containerHeight - 40, 400);
+                const scale = Math.min(1, Math.min(maxW / w, maxH / h));
+
+                // 支持高DPI屏幕（Retina显示）
+                const dpr = window.devicePixelRatio || 1;
+                const displayW = Math.round(w * scale);
+                const displayH = Math.round(h * scale);
+                const canvasW = Math.round(displayW * dpr);
+                const canvasH = Math.round(displayH * dpr);
+
+                // 只在尺寸变化时才重新设置 canvas 尺寸
+                if (cvs.width !== canvasW || cvs.height !== canvasH) {
+                  cvs.width = canvasW;
+                  cvs.height = canvasH;
+                  cvs.style.width = displayW + 'px';
+                  cvs.style.height = displayH + 'px';
+                }
+
+                // 缩放上下文以匹配DPI
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+                // 使用更好的图像平滑算法
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+
+                ctx.clearRect(0, 0, displayW, displayH);
+                ctx.drawImage(bmp, 0, 0, displayW, displayH);
+
+                // 使用用户设置的字号或动态计算的字号
+                const userFontSize = +els.wmSize.value;
+                const optimalFontSize = calculateOptimalFontSize(w, h);
+                const fontSize = userFontSize || optimalFontSize;
+
+                drawTiledText(ctx, linesFor(first.file), {
+                  size: fontSize * scale,
+                  color: els.wmColor.value,
+                  alpha: +els.wmAlpha.value / 100,
+                  font: els.wmFont.value,
+                  angle: +els.wmAngle.value,
+                  gapX: +els.gapX.value * scale,
+                  gapY: +els.gapY.value * scale,
+                  stagger: els.stagger.checked
+                });
+              } catch (err) {
+                console.error('预览渲染失败:', err);
+                showError('预览失败：' + (err.message || '未知错误'));
+              } finally {
+                if (bmp && typeof bmp.close === 'function') bmp.close();
+              }
+            } finally {
+              state.renderScheduled = false;
+            }
+          });
+        }, CONFIG.RENDER_DEBOUNCE);
+      }
+
+      /**
+       * 刷新缩略图列表
+       * 使用批量渲染优化性能
+       */
+      function refreshThumbs() {
+        els.thumbs.innerHTML = '';
+        if (!state.files.length) return;
+
+        const token = ++state.thumbsRenderToken;
+        let index = 0;
+
+        const renderBatch = () => {
+          if (token !== state.thumbsRenderToken) return;
+          const fragment = document.createDocumentFragment();
+          const end = Math.min(index + CONFIG.BATCH_SIZE, state.files.length);
+
+          for (let i = index; i < end; i++) {
+            const item = state.files[i];
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.dataset.fileIndex = i; // 使用 data 属性存储索引
+
+            const top = document.createElement('div');
+            top.className = 'thumb';
+            const img = document.createElement('img');
+            img.src = item.url;
+            img.alt = item.file.name;
+            img.loading = 'lazy';
+            top.appendChild(img);
+
+            const meta = document.createElement('div');
+            meta.className = 'meta';
+
+            const name = document.createElement('div');
+            name.className = 'name';
+            name.textContent = item.file.name;
+            name.title = item.file.name;
+
+            const actions = document.createElement('div');
+            actions.className = 'actions';
+
+            const previewBtn = document.createElement('button');
+            previewBtn.className = 'btn sm';
+            previewBtn.textContent = '预览';
+            previewBtn.dataset.action = 'preview';
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'btn sm primary';
+            downloadBtn.textContent = '下载';
+            downloadBtn.dataset.action = 'download';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn sm ghost';
+            removeBtn.textContent = '移除';
+            removeBtn.dataset.action = 'remove';
+
+            actions.append(previewBtn, downloadBtn, removeBtn);
+            meta.append(name, actions);
+            card.append(top, meta);
+            fragment.appendChild(card);
+          }
+
+          els.thumbs.appendChild(fragment);
+          index = end;
+          if (index < state.files.length) {
+            setTimeout(renderBatch, 20);
+          }
+        };
+
+        renderBatch();
+      }
+
+      // 使用事件委托处理缩略图操作
+      els.thumbs.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+
+        const card = btn.closest('.card');
+        if (!card) return;
+
+        const idx = parseInt(card.dataset.fileIndex, 10);
+        if (isNaN(idx) || idx < 0 || idx >= state.files.length) return;
+
+        const action = btn.dataset.action;
+        const item = state.files[idx];
+
+        if (action === 'preview') {
+          state.files.unshift(state.files.splice(idx, 1)[0]);
+          refreshThumbs();
+          renderPreview();
+        } else if (action === 'download') {
+          if (btn.disabled || state.isProcessing) return;
+          btn.disabled = true;
+          const originalText = btn.textContent;
+          btn.textContent = '处理中…';
+          try {
+            const { blob, name } = await processOne(item.file);
+            downloadBlob(blob, name);
+          } catch (err) {
+            console.error('处理失败:', err);
+            showError('处理失败：' + (err.message || '未知错误'));
+          } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+          }
+        } else if (action === 'remove') {
+          URL.revokeObjectURL(item.url);
+          state.files.splice(idx, 1);
+          refreshThumbs();
+          renderPreview();
+          updateStats();
+        }
+      });
+
+      // ==================== 文件处理函数 ====================
+      
+      /**
+       * 添加文件到队列
+       * 包含文件验证和限制检查
+       */
+      function addFiles(fileList) {
+        const files = [...fileList].filter(f => f.type && f.type.startsWith('image/'));
+        if (!files.length) {
+          showError('未找到有效的图片文件');
+          return;
+        }
+
+        // 检查文件数量限制
+        const currentCount = state.files.length;
+        const newCount = files.length;
+        if (currentCount + newCount > CONFIG.MAX_FILES) {
+          showError(`最多只能添加 ${CONFIG.MAX_FILES} 张图片，当前已有 ${currentCount} 张`);
+          return;
+        }
+
+        // 验证文件大小
+        const oversized = files.filter(f => f.size > CONFIG.MAX_FILE_SIZE);
+        if (oversized.length > 0) {
+          const maxMB = (CONFIG.MAX_FILE_SIZE / 1024 / 1024).toFixed(0);
+          showError(`有 ${oversized.length} 个文件超过 ${maxMB}MB 限制，已跳过`);
+        }
+
+        const validFiles = files.filter(f => f.size <= CONFIG.MAX_FILE_SIZE);
+        if (!validFiles.length) return;
+
+        // 添加文件到状态
+        validFiles.forEach(file => {
+          state.files.push({
+            file,
+            url: URL.createObjectURL(file)
+          });
+        });
+
+        updateStats();
+        refreshThumbs();
+        renderPreview();
+      }
+
+      /**
+       * 显示通知消息 (Notion风格)
+       * @param {String} message - 消息内容
+       * @param {String} type - 消息类型: 'error' | 'success'
+       */
+      function showToast(message, type = 'error') {
+        const existing = document.querySelector('.error-toast, .success-toast');
+        if (existing) {
+          existing.classList.add('hiding');
+          setTimeout(() => existing.remove(), 300);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = type === 'success' ? 'success-toast' : 'error-toast';
+        toast.textContent = message;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+          toast.classList.add('hiding');
+          setTimeout(() => toast.remove(), 300);
+        }, 3500);
+      }
+
+      // 向后兼容的别名
+      function showError(message) {
+        showToast(message, 'error');
+      }
+      
+      function showSuccess(message) {
+        showToast(message, 'success');
+      }
+
+      /**
+       * 处理单个图片文件，生成带水印的新图片
+       * @param {File} file - 图片文件
+       * @returns {Promise<{blob: Blob, name: String}>}
+       */
+      async function processOne(file) {
+        let bmp;
+        try {
+          bmp = await loadBitmap(file);
+          const w = bmp.width || bmp.naturalWidth;
+          const h = bmp.height || bmp.naturalHeight;
+
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d', { alpha: false });
+          if (!ctx) throw new Error('Canvas 不可用');
+
+          // 提升输出质量
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          ctx.drawImage(bmp, 0, 0, w, h);
+
+          // 使用用户设置的字号或动态计算的字号
+          const userFontSize = +els.wmSize.value;
+          const optimalFontSize = calculateOptimalFontSize(w, h);
+          const fontSize = userFontSize || optimalFontSize;
+
+          drawTiledText(ctx, linesFor(file), {
+            size: fontSize,
+            color: els.wmColor.value,
+            alpha: +els.wmAlpha.value / 100,
+            font: els.wmFont.value,
+            angle: +els.wmAngle.value,
+            gapX: +els.gapX.value,
+            gapY: +els.gapY.value,
+            stagger: els.stagger.checked
+          });
+
+          const type = 'image/jpeg';
+          const blob = await new Promise(resolve => 
+            canvas.toBlob(resolve, type, CONFIG.JPEG_QUALITY)
+          );
+          if (!blob) throw new Error('图片生成失败');
+          
+          const name = file.name.replace(/\.[^.]+$/, '') + '_wm.jpg';
+
+          return { blob, name };
+        } finally {
+          if (bmp && typeof bmp.close === 'function') bmp.close();
+        }
+      }
+
+      // ==================== 事件监听器 ====================
+      
+      // 选择图片按钮
+      els.pickBtn.addEventListener('click', async () => {
+        if (window.showOpenFilePicker) {
+          try {
+            const handles = await window.showOpenFilePicker({
+              multiple: true,
+              types: [{
+                description: 'Images',
+                accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp'] }
+              }]
+            });
+            const files = await Promise.all(handles.map(h => h.getFile()));
+            addFiles(files);
+            return;
+          } catch (err) {
+            if (err && err.name !== 'AbortError') {
+              console.warn('File System Access API 失败:', err);
+            }
+          }
+        }
+        els.fileInput.click();
+      });
+
+      // 文件输入变化事件
+      els.fileInput.addEventListener('change', () => {
+        if (els.fileInput.files) {
+          addFiles(els.fileInput.files);
+        }
+        els.fileInput.value = '';
+      });
+
+      // 拖放事件 - 进入/悬停
+      ['dragenter', 'dragover'].forEach(eventType => {
+        els.previewWrap.addEventListener(eventType, e => {
+          e.preventDefault();
+          els.previewWrap.classList.add('dragover');
+        });
+      });
+
+      // 拖放事件 - 离开/放下
+      ['dragleave', 'drop'].forEach(eventType => {
+        els.previewWrap.addEventListener(eventType, e => {
+          e.preventDefault();
+          if (eventType === 'drop' && e.dataTransfer && e.dataTransfer.files) {
+            addFiles(e.dataTransfer.files);
+          }
+          els.previewWrap.classList.remove('dragover');
+        });
+      });
+
+      // 批量处理并下载
+      els.processAll.addEventListener('click', async () => {
+        if (!state.files.length) {
+          showError('请先添加图片');
+          return;
+        }
+        if (state.isProcessing) return;
+
+        const btn = els.processAll;
+        state.isProcessing = true;
+        btn.disabled = true;
+        
+        const total = state.files.length;
+        let processed = 0;
+        let failed = 0;
+
+        try {
+          for (let i = 0; i < state.files.length; i++) {
+            const it = state.files[i];
+            btn.textContent = `处理中 ${processed + 1}/${total}...`;
+            
+            try {
+              const { blob, name } = await processOne(it.file);
+              downloadBlob(blob, name);
+              processed++;
+              
+              // 添加小延迟避免浏览器下载限制
+              if (i < state.files.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+              }
+            } catch (err) {
+              console.error(`处理失败 [${it.file.name}]:`, err);
+              failed++;
+            }
+          }
+
+          if (failed > 0) {
+            showError(`完成！成功 ${processed} 张，失败 ${failed} 张`);
+          } else {
+            showSuccess(`✨ 处理完成！成功生成 ${processed} 张图片`);
+          }
+        } catch (err) {
+          console.error('批处理异常:', err);
+          showError('批处理过程出错：' + (err.message || '未知错误'));
+        } finally {
+          state.isProcessing = false;
+          btn.disabled = false;
+          btn.textContent = '处理全部并下载';
+        }
+      });
+
+      // 清空文件列表
+      els.clear.addEventListener('click', () => {
+        state.files.forEach(it => URL.revokeObjectURL(it.url));
+        state.files = [];
+        refreshThumbs();
+        renderPreview();
+        updateStats();
+      });
+
+
+      // 滑块吸附功能
+      function snapToPreset(val, presets) {
+        let nearest = presets[0];
+        let minDist = Math.abs(val - presets[0]);
+        for (const p of presets) {
+          const d = Math.abs(val - p);
+          if (d < minDist) {
+            minDist = d;
+            nearest = p;
+          }
+        }
+        return nearest;
+      }
+
+      // 各滑块的预设档位
+      const PRESETS = {
+        wmAlpha: [0, 20, 40, 60, 80, 100],
+        wmSize: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+        wmAngle: [-90, -60, -45, -30, 0, 30, 45, 60, 90],
+        gapX: [20, 150, 280, 410, 540, 670, 800],
+        gapY: [20, 150, 280, 410, 540, 670, 800],
+      };
+
+      function nearestPreset(val, presets) {
+        let nearest = presets[0];
+        let minDist = Math.abs(val - presets[0]);
+        for (const p of presets) {
+          const d = Math.abs(val - p);
+          if (d < minDist) {
+            minDist = d;
+            nearest = p;
+          }
+        }
+        return nearest;
+      }
+
+      // 渲染刻度点
+      function renderDots(container, presets, min, max, currentValue) {
+        container.innerHTML = '';
+        presets.forEach(preset => {
+          const dot = document.createElement('div');
+          dot.className = 'range-dot';
+          if (preset === currentValue) {
+            dot.classList.add('active');
+          }
+          // 计算位置百分比（容器已按 thumb 半径内缩）
+          const position = ((preset - min) / (max - min)) * 100;
+          dot.style.left = `${position}%`;
+          container.appendChild(dot);
+        });
+      }
+
+      // 绑定滑块，带吸附和刻度点
+      function bindRangeWithDots(rangeEl, inputEl, dotsEl, key, min, max, formatter) {
+        const presets = PRESETS[key];
+        
+        // 初始渲染刻度点
+        renderDots(dotsEl, presets, min, max, Number(rangeEl.value));
+        
+        // 滑块input事件
+        rangeEl.addEventListener('input', () => {
+          let v = Number(rangeEl.value);
+          const snapped = snapToPreset(v, presets);
+          if (snapped !== v) {
+            rangeEl.value = snapped;
+            v = snapped;
+          }
+          inputEl.value = formatter(v);
+          renderDots(dotsEl, presets, min, max, v);
+          save();
+          renderPreview();
+        });
+        
+        // 输入框change事件
+        inputEl.addEventListener('change', () => {
+          let rawVal = inputEl.value.replace(/[^\d.-]/g, '');
+          let v = Number(rawVal);
+          if (isNaN(v)) {
+            v = Number(rangeEl.value);
+          } else {
+            v = Math.max(min, Math.min(max, v));
+          }
+          rangeEl.value = v;
+          inputEl.value = formatter(v);
+          renderDots(dotsEl, presets, min, max, nearestPreset(v, presets));
+          save();
+          renderPreview();
+        });
+        
+        // 输入框聚焦时选中
+        inputEl.addEventListener('focus', () => {
+          inputEl.select();
+        });
+      }
+
+      // 绑定所有滑块
+      bindRangeWithDots(els.wmAlpha, els.alphaInput, els.alphaDots, 'wmAlpha', 0, 100, v => v + '%');
+      bindRangeWithDots(els.wmSize, els.sizeInput, els.sizeDots, 'wmSize', 0, 100, v => v === 0 ? '自动' : v + 'px');
+      bindRangeWithDots(els.wmAngle, els.angleInput, els.angleDots, 'wmAngle', -90, 90, v => v + '°');
+      bindRangeWithDots(els.gapX, els.gapXInput, els.gapXDots, 'gapX', 20, 800, v => v + 'px');
+      bindRangeWithDots(els.gapY, els.gapYInput, els.gapYDots, 'gapY', 20, 800, v => v + 'px');
+
+      function refreshAllDots() {
+        renderDots(els.alphaDots, PRESETS.wmAlpha, 0, 100, Number(els.wmAlpha.value));
+        renderDots(els.sizeDots, PRESETS.wmSize, 0, 100, Number(els.wmSize.value));
+        renderDots(els.angleDots, PRESETS.wmAngle, -90, 90, Number(els.wmAngle.value));
+        renderDots(els.gapXDots, PRESETS.gapX, 20, 800, Number(els.gapX.value));
+        renderDots(els.gapYDots, PRESETS.gapY, 20, 800, Number(els.gapY.value));
+      }
+
+      window.addEventListener('resize', () => {
+        requestAnimationFrame(refreshAllDots);
+      });
+
+
+      // 颜色选择器
+      els.wmColor.addEventListener('input', () => { save(); renderPreview(); });
+      
+      // 字体输入
+      els.wmFont.addEventListener('input', () => { applyTextFont(); save(); renderPreview(); });
+      
+      // 交错排布
+      els.stagger.addEventListener('change', () => { save(); renderPreview(); });
+
+      // 水印文本输入（防抖）
+      els.wmText.addEventListener('input', debounce(() => {
+        if (els.wmText.value.length > CONFIG.MAX_TEXT_LENGTH) {
+          els.wmText.value = els.wmText.value.slice(0, CONFIG.MAX_TEXT_LENGTH);
+          if (!state.textWarned) {
+            showError(`水印文本最多 ${CONFIG.MAX_TEXT_LENGTH} 个字符`);
+            state.textWarned = true;
+          }
+        } else {
+          state.textWarned = false;
+        }
+        localStorage.setItem(state.textKey, els.wmText.value);
+        save();
+        renderPreview();
+      }, 150));
+
+      // 占位符按钮
+      document.querySelectorAll('.token').forEach(btn => {
+        btn.addEventListener('click', () => insertToken(btn.dataset.token || ''));
+      });
+
+      // 重置设置按钮
+      document.getElementById('resetSettings')?.addEventListener('click', () => {
+        if (!confirm('确定要重置为默认样式吗？')) return;
+        
+        // 重置为默认值
+        els.wmColor.value = '#111111';
+        els.wmAlpha.value = '20';
+        els.wmSize.value = '0';
+        els.wmFont.value = '"MiSans", system-ui, "PingFang SC", sans-serif';
+        els.wmAngle.value = '-45';
+        els.gapX.value = '160';
+        els.gapY.value = '160';
+        els.stagger.checked = true;
+        
+        // 更新输入框显示
+        els.alphaInput.value = '20%';
+        els.sizeInput.value = '自动';
+        els.angleInput.value = '-45°';
+        els.gapXInput.value = '160px';
+        els.gapYInput.value = '160px';
+        
+        // 更新刻度点
+        renderDots(els.alphaDots, PRESETS.wmAlpha, 0, 100, 20);
+        renderDots(els.sizeDots, PRESETS.wmSize, 0, 200, 0);
+        renderDots(els.angleDots, PRESETS.wmAngle, -90, 90, -45);
+        renderDots(els.gapXDots, PRESETS.gapX, 20, 800, 160);
+        renderDots(els.gapYDots, PRESETS.gapY, 20, 800, 160);
+        
+        applyTextFont();
+        
+        // 不清除文本存储，仅重置样式
+        
+        // 重新渲染
+        save();
+        renderPreview();
+        showSuccess('已重置为默认样式');
+      });
+
+      // 高级设置折叠功能
+      els.advancedToggle.addEventListener('click', () => {
+        const isExpanded = els.advancedContent.classList.contains('show');
+        if (isExpanded) {
+          els.advancedContent.classList.remove('show');
+          els.advancedToggle.classList.remove('expanded');
+        } else {
+          els.advancedContent.classList.add('show');
+          els.advancedToggle.classList.add('expanded');
+        }
+      });
+
+      // 复制网址功能
+      document.getElementById('copyUrlBtn')?.addEventListener('click', async () => {
+        const url = 'tools.baiyuyu.com/watermark';
+        const btn = document.getElementById('copyUrlBtn');
+        if (!btn) return;
+        
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(url);
+          } else {
+            // 降级方案
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+          }
+          
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;fill:currentColor;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>已复制';
+          btn.style.color = '#10b981';
+          btn.style.borderColor = '#10b981';
+          
+          setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.style.color = '';
+            btn.style.borderColor = '';
+          }, 2000);
+        } catch (err) {
+          console.error('复制失败:', err);
+          showError('复制失败，请手动复制');
+        }
+      });
+
+      // ==================== 设置管理 ====================
+      
+      /**
+       * 保存设置到 localStorage
+       */
+      function save() {
+        try {
+          localStorage.setItem(state.textKey, els.wmText.value);
+        } catch (err) {
+          console.error('保存文本失败:', err);
+          if (err.name === 'QuotaExceededError') {
+            console.warn('localStorage 容量已满');
+          }
+        }
+      }
+
+      /**
+       * 从 localStorage 加载设置
+       */
+      function load() {
+        try {
+          const savedText = localStorage.getItem(state.textKey);
+          if (savedText) els.wmText.value = savedText;
+        } catch (err) {
+          console.error('加载文本失败:', err);
+        }
+        applyTextFont();
+      }
+
+      /**
+       * 加载文本草稿
+       */
+      function loadDraft() {
+        const draft = localStorage.getItem(state.textKey);
+        if (draft && !els.wmText.value) {
+          els.wmText.value = draft;
+        }
+      }
+
+      // ==================== 初始化 ====================
+      (function init() {
+        load();
+        loadDraft();
+        if (!els.wmText.value) {
+          els.wmText.value = '仅供××实名认证使用\n{date}';
+        }
+        applyTextFont();
+        updateStats();
+        renderPreview();
+        requestAnimationFrame(refreshAllDots);
+      })();
+    })();
+  </script>
 </body>
-
 </html>
